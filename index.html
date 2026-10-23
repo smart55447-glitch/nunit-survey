@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>N unit 설문</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@500;800&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+/* Layout: one narrow column, a step rail on top; each question is a ruled row, follow-ups indent under their question. */
+:root {
+  --bg: #f1f2f4;
+  --paper: #ffffff;
+  --ink: #1b1d22;
+  --muted: #646a75;
+  --rule: #d9dce2;
+  --soft: #e7e9ed;
+  --c-self: #e2553c;   /* 개인 · 점 */
+  --c-other: #c98a12;  /* 개인과 타인 · 선 */
+  --c-env: #2f9a5e;    /* 개인과 환경 · 면 */
+  --accent: var(--c-self);
+  --no: #d23b3b;      /* 부정 · '그렇지 않다' 쪽 */
+  --yes: #2f62d0;     /* 긍정 · '그렇다' 쪽 */
+  --warn: #c23a2b;
+  --f-display: "Gothic A1", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14161a; --paper: #1c1f24; --ink: #eceef2; --muted: #9aa0ab;
+    --rule: #30343b; --soft: #262a31;
+    --c-self: #f07a62; --c-other: #e3a83a; --c-env: #55c085; --warn: #f07a62; --no: #f27272; --yes: #7ea3ee;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14161a; --paper: #1c1f24; --ink: #eceef2; --muted: #9aa0ab;
+  --rule: #30343b; --soft: #262a31;
+  --c-self: #f07a62; --c-other: #e3a83a; --c-env: #55c085; --warn: #f07a62; --no: #f27272; --yes: #7ea3ee;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+
+header.top { display: flex; flex-direction: column; gap: 10px; }
+.brand { font-family: var(--f-mono); font-size: 13px; letter-spacing: .08em; color: var(--muted); }
+h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(30px, 7vw, 44px); line-height: 1.15; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+.lede { margin: 0; color: var(--muted); max-width: 34em; }
+
+/* step rail */
+.rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.rail .seg { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.rail .bar { height: 4px; border-radius: 2px; background: var(--soft); }
+.rail .seg.done .bar, .rail .seg.on .bar { background: var(--seg); }
+.rail .lbl { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rail .seg.on .lbl { color: var(--ink); font-weight: 600; }
+
+/* section head */
+.sec-head { display: flex; align-items: center; gap: 14px; }
+.sec-head svg { flex: none; width: 44px; height: 44px; }
+.sec-head h2 { font-family: var(--f-display); font-weight: 800; font-size: 26px; margin: 0; line-height: 1.2; }
+.sec-head p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+
+.qlist { display: flex; flex-direction: column; background: var(--paper); border-radius: 14px; border: 1px solid var(--rule); }
+.q { padding: 22px 20px; display: flex; flex-direction: column; gap: 14px; border-top: 1px solid var(--rule); }
+.q:first-child { border-top: 0; }
+.q .num { font-family: var(--f-mono); font-size: 12px; color: var(--accent); letter-spacing: .04em; }
+.q .text { font-size: 17px; font-weight: 600; line-height: 1.5; margin: 0; text-wrap: pretty; }
+.q.missing .text::after { content: "  답을 골라 주세요"; color: var(--warn); font-size: 13px; font-weight: 500; }
+.q.missing.write .text::after { content: "  답을 적어 주세요"; }
+
+.fu { margin-left: 4px; padding: 16px 0 2px 16px; border-left: 3px solid var(--accent); display: flex; flex-direction: column; gap: 12px; animation: drop .28s ease-out; }
+.fu .tag { font-family: var(--f-mono); font-size: 11px; letter-spacing: .08em; color: var(--accent); }
+@keyframes drop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .fu { animation: none; } }
+
+/* spectrum */
+.spec { display: flex; flex-direction: column; gap: 6px; }
+.spec input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; cursor: pointer; }
+.spec input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--no), var(--soft) 50%, var(--yes)); }
+.spec input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--no), var(--soft) 50%, var(--yes)); }
+.spec input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -9px; border-radius: 50%; background: var(--paper); border: 3px solid var(--ink); }
+.spec input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--paper); border: 3px solid var(--ink); }
+.spec.untouched input[type=range]::-webkit-slider-thumb { border-color: var(--muted); background: var(--soft); }
+.spec.untouched input[type=range]::-moz-range-thumb { border-color: var(--muted); background: var(--soft); }
+.spec .ends { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+.spec .hint { font-size: 12px; color: var(--muted); }
+.spec .now { font-size: 19px; font-weight: 600; min-height: 1.5em; color: var(--muted); }
+.spec .now[data-band="0"], .spec .now[data-band="1"] { color: var(--no); }
+.spec .now[data-band="3"], .spec .now[data-band="4"] { color: var(--yes); }
+.spec.untouched .now { font-size: 14px; font-weight: 500; color: var(--muted); }
+.ticks { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; font-size: 12px; line-height: 1.3; word-break: keep-all; }
+.ticks span { text-align: center; color: var(--muted); }
+.ticks span:first-child { text-align: left; }
+.ticks span:last-child { text-align: right; }
+.ticks .t0, .ticks .t1 { color: var(--no); }
+.ticks .t3, .ticks .t4 { color: var(--yes); }
+.ticks .t0, .ticks .t4 { font-size: 14px; font-weight: 700; }
+
+/* choices */
+.choices { display: grid; gap: 6px; }
+.choices.five { grid-template-columns: repeat(5, 1fr); }
+.choices.three { grid-template-columns: repeat(3, 1fr); }
+.choices button {
+  font: inherit; font-size: 13px; line-height: 1.3; padding: 12px 4px; min-height: 52px;
+  border-radius: 10px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); cursor: pointer;
+  word-break: keep-all;
+}
+.choices button:hover { border-color: var(--ink); }
+.choices button[data-side="no"] { color: var(--no); }
+.choices button[data-side="yes"] { color: var(--yes); }
+.choices button[data-side="yes"]:hover { border-color: var(--yes); }
+.choices button[data-edge="1"] { font-weight: 700; font-size: 14px; }
+.choices button[data-side="no"]:hover { border-color: var(--no); }
+.choices button[aria-pressed="true"] { background: var(--yes); border-color: var(--yes); color: var(--paper); font-weight: 600; }
+.choices button[data-side="no"][aria-pressed="true"] { background: var(--no); border-color: var(--no); }
+.choices button[data-side="mid"][aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.choices button.skip { grid-column: 1 / -1; min-height: 42px; color: var(--muted); border-style: dashed; background: transparent; }
+.choices button.skip[aria-pressed="true"] { background: var(--soft); border-color: var(--muted); border-style: solid; color: var(--ink); }
+
+/* number inputs */
+.numrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.numrow input[type=number] { font: inherit; width: 120px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); }
+.money-out { font-family: var(--f-mono); font-size: 15px; font-variant-numeric: tabular-nums; }
+
+/* text inputs */
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field input[type=text] { font: inherit; font-size: 20px; letter-spacing: .12em; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink); }
+.field small { color: var(--muted); font-size: 13px; }
+
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.nav { display: flex; justify-content: space-between; gap: 10px; }
+.btn { font: inherit; font-weight: 600; padding: 14px 22px; border-radius: 999px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink); cursor: pointer; }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); margin-left: auto; }
+.btn:disabled { opacity: .5; cursor: default; }
+
+.done { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; padding: 32px 22px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.done .shapes { display: flex; gap: 10px; }
+.done h2 { font-family: var(--f-display); font-weight: 800; font-size: 28px; margin: 0; }
+.done p { margin: 0; color: var(--muted); }
+.code { font-family: var(--f-mono); font-size: 14px; padding: 4px 10px; background: var(--soft); border-radius: 6px; color: var(--ink); }
+.status { font-size: 13px; }
+.status.bad { color: var(--warn); }
+.admin { display: flex; flex-direction: column; gap: 16px; }
+.admin h2 { font-family: var(--f-display); font-weight: 800; font-size: 26px; margin: 0; }
+.admin .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.admin .bar .count { margin-right: auto; color: var(--muted); }
+.tablewrap { overflow-x: auto; background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; }
+table.resp { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+table.resp th, table.resp td { border-bottom: 1px solid var(--rule); padding: 8px 10px; text-align: left; white-space: nowrap; vertical-align: top; }
+table.resp th { position: sticky; top: 0; background: var(--soft); font-weight: 600; }
+table.resp td .sc { color: var(--muted); font-family: var(--f-mono); font-size: 11px; font-variant-numeric: tabular-nums; margin-left: 4px; }
+table.resp th.fu, table.resp td.fu { color: var(--muted); }
+.empty { padding: 28px 18px; color: var(--muted); }
+.linkbtn { font: inherit; font-size: 13px; color: var(--muted); background: none; border: 0; padding: 6px 0; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+/* ---------- 휴대폰 ---------- */
+@media (max-width: 520px) {
+  body { font-size: 15px; padding-block: 18px 0; }
+  .wrap { gap: 20px; }
+  header.top { gap: 6px; }
+  .brand { font-size: 11px; }
+  h1 { font-size: 27px; }
+  .lede { font-size: 14px; line-height: 1.55; }
+  .rail { gap: 4px; }
+  .rail .lbl { font-size: 11px; }
+
+  .sec-head { gap: 10px; }
+  .sec-head svg { width: 34px; height: 34px; }
+  .sec-head h2 { font-size: 22px; }
+  .sec-head p { font-size: 13px; }
+
+  .qlist { border-radius: 12px; }
+  .q { padding: 18px 16px 20px; gap: 12px; }
+  .q .text { font-size: 16px; line-height: 1.5; }
+  .q.missing .text::after { display: block; content: "답을 골라 주세요"; margin-top: 4px; }
+  .q.missing.write .text::after { content: "답을 적어 주세요"; }
+
+  .fu { margin-left: 0; padding: 14px 0 2px 12px; gap: 10px; }
+
+  /* 막대: 손가락으로 잡기 쉽게 크게 */
+  .spec input[type=range] { height: 36px; }
+  .spec input[type=range]::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; }
+  .spec input[type=range]::-moz-range-track { height: 8px; border-radius: 4px; }
+  .spec input[type=range]::-webkit-slider-thumb { width: 30px; height: 30px; margin-top: -11px; }
+  .spec input[type=range]::-moz-range-thumb { width: 24px; height: 24px; }
+  .spec .now { font-size: 18px; }
+  /* 눈금은 양 끝과 가운데만, 지금 단계는 막대 위 글자가 알려 줌 */
+  .ticks { grid-template-columns: 1fr auto 1fr; font-size: 12px; }
+  .ticks .t1, .ticks .t3 { display: none; }
+  .ticks .t0, .ticks .t4 { font-size: 13px; }
+
+  /* 선택지: 한 줄에 하나씩, 왼쪽에 색 표시 */
+  .choices.five, .choices.three { grid-template-columns: 1fr; gap: 6px; }
+  .choices.five button, .choices.three button { min-height: 46px; padding: 10px 14px 10px 40px; text-align: left; font-size: 15px; position: relative; }
+  .choices button::before { content: ""; position: absolute; left: 14px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; border: 2px solid currentColor; }
+  .choices button[aria-pressed="true"]::before { background: currentColor; }
+  .choices button[data-edge="1"] { font-size: 15px; }
+
+  .field input[type=text] { font-size: 18px; padding: 12px; }
+
+  /* 아래쪽에 붙는 이전/다음 버튼 */
+  .nav {
+    position: sticky; bottom: 0; z-index: 5;
+    margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+    padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+    background: var(--bg); border-top: 1px solid var(--rule);
+  }
+  .nav .btn { flex: 1; padding: 14px 12px; }
+  .nav .btn.primary { flex: 2; }
+  .btn { padding: 12px 18px; }
+  .done { padding: 26px 18px; }
+  .done h2 { font-size: 24px; }
+  .admin .bar .btn { flex: 1 1 auto; }
+}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">N UNIT · SURVEY</div>
+    <h1>삶에서 영향을 받은 것들</h1>
+    <p class="lede">정답은 없어요. 질문을 읽고 지금의 나에게 가까운 쪽을 고르면 돼요. 어떤 답은 질문 하나를 더 열어요.</p>
+  </header>
+
+  <nav class="rail" id="rail" aria-label="진행 단계"></nav>
+
+  <main id="stage"></main>
+
+  <div class="nav" id="nav">
+    <button class="btn" id="prev" type="button">이전</button>
+    <button class="btn primary" id="next" type="button">다음</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// ▼▼▼ Firebase 콘솔 → 프로젝트 설정 → 내 앱(웹)에서 복사한 값으로 바꿔 넣으세요 ▼▼▼
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAkNRJvDhze8bqILykW8MDg7j9XLdeL-ug",
+  authDomain: "nunit-survey.firebaseapp.com",
+  projectId: "nunit-survey",
+  storageBucket: "nunit-survey.firebasestorage.app",
+  messagingSenderId: "888841241245",
+  appId: "1:888841241245:web:a6a6c1ccc8f0c8c98f0a74"
+};
+// ▲▲▲ 여기까지 ▲▲▲
+
+// 관리자 아이디 뒤에 자동으로 붙는 주소 (Firebase에 사용자를 만들 때 "아이디@이 주소"로 만들어요)
+const ADMIN_ID_DOMAIN = "nunit-team.com";
+const OFTEN = ["별로 안 하는 편이다", "가끔 하는 편이다", "보통이다", "자주 하는 편이다", "매우 자주 하는 편이다"];
+const SECTIONS = [
+  { key: "intro", label: "시작", color: "--ink" },
+  { key: "self", label: "개인", color: "--c-self", shape: "dot",
+    desc: "나 스스로에게서 받은 영향",
+    qs: [
+      { id: "s_str1", item: "강도", type: "spec", text: "자신감이 있는 사람인가?",
+        fu: { type: "spec", text: "실패하거나 예상과 다른 결과를 얻었을 때도 스스로에 대한 믿음이 유지되는가?" } },
+      { id: "s_str2", item: "강도", type: "spec", text: "예전의 나와 지금의 내가 똑같다고 느끼는가?",
+        fu: { type: "spec", text: "미래의 나는 지금과 비슷할 것 같은가?" } },
+      { id: "s_dur", item: "지속성", type: "duration", text: "스스로 정한 루틴이 현재까지 얼마나 유지되는가?",
+        fu: { type: "spec", text: "루틴의 주기가 규칙적인가?" } },
+      { id: "s_acc", item: "수용 태도", type: "spec", text: "내가 생각했던 '나'와 다른 모습을 발견해도, 크게 신경 쓰지 않는 편인가?",
+        fu: { type: "spec", text: "'나'에 대해 새롭게 알게 된 사실을 쉽게 받아들이는가?" } },
+      { id: "s_vis", item: "가시성", type: "spec", text: "남들에게는 나의 습관이 없을 거라 생각하는가?",
+        fu: { type: "money", text: "최소 얼마를 받으면 이 습관을 공개해도 괜찮은가?" } },
+    ] },
+  { key: "other", label: "개인과 타인", color: "--c-other", shape: "line",
+    desc: "다른 사람에게서 받은 영향",
+    qs: [
+      { id: "o_str", item: "강도", type: "spec", ticks: ["안 달라졌을 듯", "조금 달라졌을 듯", "보통", "많이 달라졌을 듯", "꽤 많이"], text: "나에게 가장 영향력 있는 사람을 만나지 않았더라면, 지금 나는 얼마나 달라졌을 것 같은가?",
+        fu: { type: "spec", text: "최근 알게 된 사람인가?" } },
+      { id: "o_dur1", item: "지속성", type: "three", text: "유년 시절 가족에게서 배운 생활 습관이 아직까지도 남아 있는가?",
+        fu: { type: "three", text: "몇 년이 지나도 그 습관을 그대로 지킬 것 같은가?" } },
+      { id: "o_dur2", item: "지속성", type: "three", text: "친구의 말투나 취향을 오랫동안 따라 하게 되는가?",
+        fu: { type: "three", text: "친구와 멀어진 뒤에도 옮은 말투나 취향이 계속 남아 있는가?" } },
+      { id: "o_dur3", item: "지속성", type: "three", skip: "연애 경험 없음", text: "연애 중 배운 관계를 다루는 방식이 다른 인간관계에서도 이어지는가?",
+        fu: { type: "three", text: "과거의 특정 인간관계에서 배운 방식 중, 현재는 바꾸고 싶은 것이 있는가?" } },
+      { id: "o_acc", item: "수용 태도", type: "spec", text: "타인의 의견과 내 의견이 달라도, 크게 신경을 쓰지 않는 편인가?",
+        fu: { type: "spec", text: "다른 사람의 의견에 쉽게 따를 수 있는가?" } },
+      { id: "o_vis1", item: "가시성", type: "spec", text: "타인에게 내 취향을 당당하게 말할 수 있는가?",
+        fu: { type: "people", text: "최대 몇 명에게 이 취향을 공개해도 괜찮은가?" } },
+      { id: "o_vis2", item: "가시성", type: "spec", ticks: ["별로 안 함", "가끔 함", "보통", "종종 함", "자주"], text: "부모님이 나에게 잔소리를 얼마나 하는가?",
+        fu: { type: "spec", text: "주변 사람에게 내 습관에 대한 지적을 자주 듣는 편인가?" } },
+    ] },
+  { key: "env", label: "개인과 환경", color: "--c-env", shape: "plane",
+    desc: "내가 속한 환경에서 받은 영향",
+    qs: [
+      { id: "e_str1", item: "강도", type: "five", opts: ["안 다름", "별로 안 다름", "보통", "조금 다름", "꽤 다름"], text: "'집 안에서의 나'와 '집 밖에서의 나'는 얼마나 다른가?",
+        fu: { type: "five", text: "환경마다 보여지는 '나'가 다른가?" } },
+      { id: "e_str2", item: "강도", type: "five", opts: ["안 많음", "별로 안 많음", "보통", "조금 많음", "많음"], text: "인터넷에서 광고하거나 SNS에서 바이럴되는 상품을 얼마나 자주 구매하는가?",
+        fu: { type: "five", opts: OFTEN, text: "인터넷을 얼마나 자주 하는가?" } },
+      { id: "e_str3", item: "강도", type: "five", text: "나는 주변 분위기에 휩쓸리는 편인가?",
+        fu: { type: "five", text: "불가피하게 주변 사람의 의견에 따르게 되어도 후회하지 않는가?" } },
+      { id: "e_dur", item: "지속성", type: "spec", text: "트렌드가 지나간 후에도 계속해서 소비하는 편인가?",
+        fu: { type: "spec", ticks: ["매우 짧게 하는 편이다", "짧게 하는 편이다", "보통이다", "오래 하는 편이다", "매우 오래 하는 편이다"], text: "얼마나 오랫동안 소비하는가?" } },
+      { id: "e_acc", item: "수용 태도", type: "spec", text: "환경이 급격하게 변했을 때, 잘 적응하는 편인가?",
+        fu: { type: "spec", text: "적응하는 과정에서 스트레스를 받지 않는 편인가?" } },
+      { id: "e_vis1", item: "가시성", type: "five", text: "에티켓 지키기를 귀찮다고 생각한 적 있는가?",
+        fu: { type: "five", text: "실제로 에티켓을 지키지 않은 적 있는가?" } },
+      { id: "e_vis2", item: "가시성", type: "five", text: "편법을 통해 결과가 좋게 나오면 괜찮다고 생각하는가?",
+        fu: { type: "five", text: "다른 사람이 편법을 쓰는 걸 발견해도 숨겨줄 수 있는가?" } },
+      { id: "e_vis3", item: "가시성", type: "five", text: "남들 시선 때문에 안 하게 된 행동이 많은 편인가?",
+        fu: { type: "five", text: "저지당할 만했다고 생각하는가?" } },
+    ] },
+];
+const FIVE = ["매우 그렇지 않다", "그렇지 않다", "보통이다", "그렇다", "매우 그렇다"];
+const THREE = ["그렇지 않다", "보통이다", "그렇다"];
+
+let step = 0;
+let A = {};      // answers: id -> {score, label} ; follow-ups use id + "__fu"
+let OPEN = { nick: "", habit: "", taste: "" };
+
+function shapeSVG(shape, color, size = 44) {
+  const c = `var(${color})`;
+  if (shape === "dot") return `<svg viewBox="0 0 44 44" width="${size}" height="${size}" aria-hidden="true"><circle cx="22" cy="22" r="12" fill="${c}"/></svg>`;
+  if (shape === "line") return `<svg viewBox="0 0 44 44" width="${size}" height="${size}" aria-hidden="true"><path d="M8 34 C 16 10, 28 34, 36 10" fill="none" stroke="${c}" stroke-width="5" stroke-linecap="round"/></svg>`;
+  return `<svg viewBox="0 0 44 44" width="${size}" height="${size}" aria-hidden="true"><rect x="7" y="9" width="30" height="26" rx="7" fill="${c}"/><circle cx="22" cy="22" r="4" fill="var(--paper)"/></svg>`;
+}
+
+function isExtreme(type, a) {
+  if (!a) return false;
+  if (type === "spec" || type === "duration") return a.score <= 30 || a.score >= 70;
+  if (type === "five") return a.idx === 0 || a.idx === 4;
+  if (type === "three") return a.idx === 0 || a.idx === 2;
+  return false;
+}
+
+function renderRail() {
+  document.getElementById("rail").innerHTML = SECTIONS.map((s, i) =>
+    `<div class="seg ${i < step ? "done" : ""} ${i === step ? "on" : ""}" style="--seg: var(${s.color})"><div class="bar"></div><div class="lbl">${s.label}</div></div>`
+  ).join("") + (step === SECTIONS.length ? "" : "");
+}
+
+function controlHTML(id, type) {
+  const a = A[id];
+  const qq = cfg(id);
+  if (type === "spec") {
+    const ticks = qq.ticks || FIVE;
+    const v = a ? a.score : 50;
+    return `<div class="spec ${a ? "" : "untouched"}">
+      <div class="now" id="now_${id}" data-band="${a ? band(v) : ""}">${a ? ticks[band(v)] : "막대를 움직여 위치를 정해 주세요"}</div>
+      <input type="range" id="in_${id}" min="0" max="100" step="1" value="${v}" data-id="${id}" aria-label="${ticks[0]}에서 ${ticks[4]} 사이">
+      <div class="ticks" aria-hidden="true">${ticks.map((t, i) => `<span class="t${i}">${t}</span>`).join("")}</div>
+    </div>`;
+  }
+  if (type === "five" || type === "three") {
+    const opts = qq.opts || (type === "five" ? FIVE : THREE);
+    const n = opts.length;
+    const side = i => i < (n - 1) / 2 ? "no" : i > (n - 1) / 2 ? "yes" : "mid";
+    return `<div class="choices ${type}" role="group">${opts.map((o, i) =>
+      `<button type="button" id="in_${id}_${i}" data-id="${id}" data-type="${type}" data-idx="${i}" data-side="${side(i)}" data-edge="${i === 0 || i === n - 1 ? 1 : 0}" aria-pressed="${a && a.idx === i}">${o}</button>`).join("")}${qq.skip ? `<button type="button" class="skip" id="in_${id}_skip" data-id="${id}" data-type="${type}" data-idx="skip" data-side="none" aria-pressed="${!!(a && a.skip)}">${qq.skip}</button>` : ""}</div>`;
+  }
+  if (type === "duration") {
+    const v = a ? a.score : 50;
+    return `<div class="spec ${a ? "" : "untouched"}">
+      <input type="range" id="in_${id}" min="0" max="100" step="1" value="${v}" data-id="${id}" data-dur="1" aria-label="유지된 기간">
+      <div class="ends"><span>1시간</span><span class="money-out" id="out_${id}">${a ? fmtDur(v) : "–"}</span><span>1년 이상</span></div>
+      ${a ? "" : `<div class="hint">막대를 움직여 기간을 정해 주세요</div>`}
+    </div>`;
+  }
+  if (type === "money") {
+    const v = a ? a.value : 100;
+    return `<div class="spec ${a ? "" : "untouched"}">
+      <input type="range" id="in_${id}" min="10" max="1000" step="10" value="${v}" data-id="${id}" data-money="1" aria-label="금액">
+      <div class="ends"><span>10만 원</span><span class="money-out" id="out_${id}">${a ? fmtMoney(v) : "–"}</span><span>1000만 원</span></div>
+    </div>`;
+  }
+  if (type === "people") {
+    const v = a ? a.value : 50;
+    return `<div class="spec ${a ? "" : "untouched"}">
+      <div class="now" id="now_${id}">${a ? v + "명" : "막대를 움직여 사람 수를 정해 주세요"}</div>
+      <input type="range" id="in_${id}" min="0" max="100" step="1" value="${v}" data-id="${id}" data-ppl="1" aria-label="사람 수">
+      <div class="ends"><span>0명</span><span>100명</span></div>
+    </div>`;
+  }
+}
+const CHO = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+const CHO_SET = new Set(CHO);
+// 완성형 글자는 초성으로 바꾸고, 초성·띄어쓰기 외의 글자는 지운다
+function toChosung(s) {
+  let out = "";
+  for (const ch of s) {
+    const c = ch.charCodeAt(0);
+    if (c >= 0xAC00 && c <= 0xD7A3) out += CHO[Math.floor((c - 0xAC00) / 588)];
+    else if (CHO_SET.has(ch)) out += ch;
+    else if (ch === " " && !out.endsWith(" ")) out += " ";
+  }
+  return out.replace(/^ +/, "");
+}
+function bindChosung(el, key) {
+  let composing = false;
+  const apply = () => {
+    const v = toChosung(el.value);
+    if (v !== el.value) el.value = v;
+    OPEN[key] = v;
+    el.closest(".q")?.classList.remove("missing");
+  };
+  el.addEventListener("compositionstart", () => { composing = true; });
+  el.addEventListener("compositionend", () => { composing = false; apply(); });
+  el.addEventListener("input", e => { if (composing || e.isComposing) { OPEN[key] = toChosung(el.value); return; } apply(); });
+  el.addEventListener("blur", apply);
+}
+function fmtDur(v) {
+  if (v >= 100) return "1년 이상";
+  const h = Math.exp(Math.log(8760) * v / 100);
+  if (h < 24) return `${Math.max(1, Math.round(h))}시간`;
+  const d = h / 24;
+  if (d < 7) return `${Math.round(d)}일`;
+  if (d < 30) return `${Math.round(d / 7)}주`;
+  const m = Math.round(d / 30.4);
+  return m >= 12 ? "1년 이상" : `${m}개월`;
+}
+function fmtMoney(v) { return v >= 1000 ? "1000만 원" : `${v}만 원`; }
+
+function renderStage() {
+  const stage = document.getElementById("stage");
+  const nav = document.getElementById("nav");
+  renderRail();
+  if (step >= SECTIONS.length) return; // done screen handled separately
+  nav.hidden = false;
+  document.getElementById("prev").style.visibility = step === 0 ? "hidden" : "visible";
+  document.getElementById("next").textContent = step === SECTIONS.length - 1 ? "제출하기" : "다음";
+
+  const s = SECTIONS[step];
+  document.documentElement.style.setProperty("--accent", step === 0 ? "var(--c-self)" : `var(${s.color})`);
+
+  if (s.key === "intro") {
+    stage.innerHTML = `
+      <div class="qlist">
+        <div class="q write" id="q_nick">
+          <div class="num">닉네임</div>
+          <div class="field">
+            <label class="text" for="nick">닉네임을 적어 주세요.</label>
+            <input type="text" id="nick" maxlength="20" autocomplete="off" placeholder="예: 하이루" value="${esc(OPEN.nick)}" style="letter-spacing:0;font-size:18px">
+            <small>나중에 내 답을 찾을 때 쓰여요. 별명도 괜찮아요.</small>
+          </div>
+        </div>
+        <div class="q write" id="q_habit">
+          <div class="num">먼저 적어 주세요 · 1</div>
+          <div class="field">
+            <label class="text" for="habit">나의 비밀스러운 습관을 적어주세요.</label>
+            <input type="text" id="habit" maxlength="20" autocomplete="off" placeholder="예: ㅅㅌㄷㄱ" value="${esc(OPEN.habit)}">
+            <small>초성만 입력돼요. 글자를 치면 자동으로 초성만 남아서 제작진도 무슨 뜻인지 알 수 없으니 걱정하지 마세요.</small>
+          </div>
+        </div>
+        <div class="q write" id="q_taste">
+          <div class="num">먼저 적어 주세요 · 2</div>
+          <div class="field">
+            <label class="text" for="taste">호불호가 갈리는 취향을 적어주세요.</label>
+            <input type="text" id="taste" maxlength="20" autocomplete="off" placeholder="예: ㅁㅊㅊㅋ" value="${esc(OPEN.taste)}">
+            <small>이것도 초성만 남아요. 제작진도 무슨 뜻인지 알 수 없어요.</small>
+          </div>
+        </div>
+      </div>`;
+    stage.insertAdjacentHTML("beforeend", `<p style="margin:18px 0 0"><button class="linkbtn" id="open-admin" type="button" hidden>제작팀 · 응답 모아 보기</button></p>`);
+    { const b = document.getElementById("open-admin"); b.hidden = false; b.addEventListener("click", () => { renderAdmin(); window.scrollTo(0, 0); }); }
+    stage.querySelector("#nick").addEventListener("input", e => { OPEN.nick = e.target.value; e.target.closest(".q").classList.remove("missing"); });
+    bindChosung(stage.querySelector("#habit"), "habit");
+    bindChosung(stage.querySelector("#taste"), "taste");
+    return;
+  }
+
+  stage.innerHTML = `
+    <section style="display:flex;flex-direction:column;gap:18px">
+      <div class="sec-head">${shapeSVG(s.shape, s.color)}<div><h2>${s.label}</h2><p>${s.desc}</p></div></div>
+      <div class="qlist">${s.qs.map((q, i) => {
+        const open = isExtreme(q.type, A[q.id]);
+        return `<div class="q" id="q_${q.id}">
+          <div class="num">${String(i + 1).padStart(2, "0")} / ${String(s.qs.length).padStart(2, "0")}</div>
+          <p class="text">${q.text}</p>
+          ${controlHTML(q.id, q.type)}
+          ${open ? `<div class="fu" id="q_${q.id}__fu"><div class="tag">질문 하나 더</div><p class="text">${q.fu.text}</p>${controlHTML(q.id + "__fu", q.fu.type)}</div>` : ""}
+        </div>`;
+      }).join("")}</div>
+    </section>`;
+}
+
+function esc(t) { return String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+function band(v) { return Math.min(4, Math.floor(v / 20)); }
+function cfg(id) { const q = findQ(id); return id.endsWith("__fu") ? q.fu : q; }
+function findQ(id) {
+  const base = id.replace(/__fu$/, "");
+  for (const s of SECTIONS) for (const q of (s.qs || [])) if (q.id === base) return q;
+}
+
+function refreshQuestion(baseId) {
+  // re-render only one question block, keeping focus behaviour simple
+  const s = SECTIONS[step];
+  const q = findQ(baseId);
+  const i = s.qs.indexOf(q);
+  const el = document.getElementById("q_" + baseId);
+  const wasOpen = !!document.getElementById("q_" + baseId + "__fu");
+  const open = isExtreme(q.type, A[q.id]);
+  if (!open) delete A[q.id + "__fu"];
+  if (wasOpen === open) return false;
+  const tmp = document.createElement("div");
+  tmp.innerHTML = `<div class="q" id="q_${q.id}">
+      <div class="num">${String(i + 1).padStart(2, "0")} / ${String(s.qs.length).padStart(2, "0")}</div>
+      <p class="text">${q.text}</p>
+      ${controlHTML(q.id, q.type)}
+      ${open ? `<div class="fu" id="q_${q.id}__fu"><div class="tag">질문 하나 더</div><p class="text">${q.fu.text}</p>${controlHTML(q.id + "__fu", q.fu.type)}</div>` : ""}
+    </div>`;
+  el.replaceWith(tmp.firstElementChild);
+  return true;
+}
+
+// interactions (delegated)
+const stageEl = document.getElementById("stage");
+function onRange(e) {
+  const t = e.target;
+  if (t.type !== "range") return;
+  const id = t.dataset.id;
+  const v = Number(t.value);
+  if (t.dataset.dur) {
+    A[id] = { score: v, label: fmtDur(v) };
+    const out = document.getElementById("out_" + id); if (out) out.textContent = fmtDur(v);
+  } else if (t.dataset.money) {
+    A[id] = { value: v, label: fmtMoney(v) };
+    const out = document.getElementById("out_" + id); if (out) out.textContent = fmtMoney(v);
+  } else if (t.dataset.ppl) {
+    A[id] = { value: v, score: v, label: v + "명" };
+    const now = document.getElementById("now_" + id); if (now) now.textContent = v + "명";
+  } else {
+    const ticks = cfg(id).ticks || FIVE;
+    A[id] = { score: v, label: ticks[band(v)] };
+    const now = document.getElementById("now_" + id);
+    if (now) { now.textContent = ticks[band(v)]; now.dataset.band = band(v); }
+  }
+  t.closest(".spec").classList.remove("untouched");
+  const hint = t.closest(".spec").querySelector(".hint"); if (hint) hint.remove();
+  t.closest(".q")?.classList.remove("missing");
+  if (!id.endsWith("__fu") && e.type === "change") {
+    const focusId = t.id;
+    if (refreshQuestion(id)) document.getElementById(focusId)?.focus();
+  }
+}
+stageEl.addEventListener("input", e => {
+  if (e.target.type === "range") onRange(e);
+});
+stageEl.addEventListener("change", e => { if (e.target.type === "range") onRange(e); });
+stageEl.addEventListener("pointerup", e => {
+  if (e.target.type === "range" && !A[e.target.dataset.id]) onRange({ target: e.target, type: "change" });
+});
+stageEl.addEventListener("click", e => {
+  const b = e.target.closest("button[data-idx]");
+  if (!b) return;
+  const id = b.dataset.id, type = b.dataset.type;
+  if (b.dataset.idx === "skip") {
+    A[id] = { idx: -1, score: null, label: b.textContent, skip: true };
+  } else {
+    const idx = Number(b.dataset.idx);
+    const score = type === "five" ? idx * 25 : idx * 50;
+    A[id] = { idx, score, label: b.textContent };
+  }
+  b.parentElement.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+  b.closest(".q")?.classList.remove("missing");
+  if (!id.endsWith("__fu")) { if (refreshQuestion(id)) document.getElementById(b.id)?.focus(); }
+});
+
+function validate() {
+  const s = SECTIONS[step];
+  let first = null;
+  if (s.key === "intro") {
+    [["nick", OPEN.nick], ["habit", OPEN.habit], ["taste", OPEN.taste]].forEach(([k, v]) => {
+      const el = document.getElementById("q_" + k);
+      const bad = !v.trim();
+      el.classList.toggle("missing", bad);
+      if (bad && !first) first = el;
+    });
+  } else {
+    for (const q of s.qs) {
+      const el = document.getElementById("q_" + q.id);
+      const bad = !A[q.id] || (isExtreme(q.type, A[q.id]) && !A[q.id + "__fu"]);
+      el.classList.toggle("missing", bad);
+      if (bad && !first) first = el;
+    }
+  }
+  if (first) first.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+  return !first;
+}
+
+document.getElementById("prev").addEventListener("click", () => { if (step > 0) { step--; renderStage(); window.scrollTo(0, 0); } });
+document.getElementById("next").addEventListener("click", async () => {
+  if (!validate()) return;
+  if (step < SECTIONS.length - 1) { step++; renderStage(); window.scrollTo(0, 0); return; }
+  await submit();
+});
+
+function buildRows() {
+  const rows = [];
+  for (const s of SECTIONS) for (const q of (s.qs || [])) {
+    const a = A[q.id];
+    rows.push({ section: s.label, item: q.item, id: q.id, question: q.text, followup: false, answer: a.label, score: a.score });
+    const f = A[q.id + "__fu"];
+    if (f) rows.push({ section: s.label, item: q.item, id: q.id + "__fu", question: q.fu.text, followup: true,
+      answer: f.label, score: f.score ?? null, value: f.value ?? null });
+  }
+  return rows;
+}
+
+
+// ---------- Firebase ----------
+firebase.initializeApp(FIREBASE_CONFIG);
+const fdb = firebase.firestore();
+const fauth = firebase.auth();
+
+async function submit() {
+  const btn = document.getElementById("next");
+  btn.disabled = true; btn.textContent = "저장하는 중";
+  const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+  const payload = { code, createdAt: new Date().toISOString(), savedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    nickname: OPEN.nick.trim(), open: { habit: OPEN.habit.trim(), taste: OPEN.taste.trim() }, rows: buildRows() };
+  try {
+    await fdb.collection("responses").doc(code).set(payload);
+  } catch (e) {
+    btn.disabled = false; btn.textContent = "다시 제출하기";
+    showStatus("답변을 저장하지 못했어요. 인터넷 연결을 확인하고 다시 제출해 주세요.");
+    return;
+  }
+  btn.disabled = false;
+  step = SECTIONS.length;
+  renderRail();
+  document.getElementById("nav").hidden = true;
+  document.getElementById("stage").innerHTML = `
+    <div class="done">
+      <div class="shapes">${shapeSVG("dot", "--c-self", 36)}${shapeSVG("line", "--c-other", 36)}${shapeSVG("plane", "--c-env", 36)}</div>
+      <h2>답해 주셔서 고마워요</h2>
+      <p>방금 고른 답들이 점, 선, 면이 되어 당신의 유닛을 만들어요.</p>
+      <p>응답 번호 <span class="code">${code}</span></p>
+      <p class="status">답변이 저장되었어요.</p>
+      <button class="btn" id="again" type="button">새로 시작하기</button>
+    </div>`;
+  document.getElementById("again").addEventListener("click", () => {
+    A = {}; OPEN = { nick: "", habit: "", taste: "" }; step = 0; renderStage(); window.scrollTo(0, 0);
+  });
+}
+function showStatus(msg) {
+  let el = document.getElementById("submit-status");
+  if (!el) { el = document.createElement("p"); el.id = "submit-status"; el.className = "status bad"; document.getElementById("nav").before(el); }
+  el.textContent = msg;
+}
+
+// ---------- 응답 모아 보기 (제작팀: 구글 로그인) ----------
+let RESP = [];
+function columns() {
+  const cols = [];
+  for (const s of SECTIONS) (s.qs || []).forEach((q, i) => {
+    const name = `${s.label} ${i + 1}번`;
+    cols.push({ id: q.id, head: name, title: q.text, fu: false });
+    cols.push({ id: q.id + "__fu", head: name + " 추가", title: q.fu.text, fu: true });
+  });
+  return cols;
+}
+function adminShell(inner) {
+  document.getElementById("nav").hidden = true;
+  document.getElementById("rail").hidden = true;
+  document.getElementById("stage").innerHTML = `<div class="admin"><h2>응답 모아 보기</h2>${inner}</div>`;
+}
+function backToSurvey() { history.replaceState(null, "", location.pathname); step = 0; document.getElementById("rail").hidden = false; renderStage(); window.scrollTo(0, 0); }
+
+let authReady = new Promise(res => { const off = fauth.onAuthStateChanged(() => { off(); res(); }); });
+async function renderAdmin() {
+  await authReady;
+  const user = fauth.currentUser;
+  if (!user) {
+    adminShell(`<p class="empty" style="padding:0">제작팀 아이디와 비밀번호를 넣으면 응답을 볼 수 있어요.</p>
+      <form id="login-form" class="qlist" style="padding:18px 16px;gap:12px;display:flex;flex-direction:column">
+        <div class="field"><label class="text" for="admin-id">아이디</label>
+          <input type="text" id="admin-id" autocomplete="username" autocapitalize="off" style="letter-spacing:0;font-size:17px"></div>
+        <div class="field"><label class="text" for="admin-pw">비밀번호</label>
+          <input type="password" id="admin-pw" autocomplete="current-password" style="font: inherit;font-size:17px;padding:12px 14px;border-radius:10px;border:1px solid var(--rule);background:var(--bg);color:var(--ink)"></div>
+        <div class="bar"><button class="btn" id="back" type="button">설문으로 돌아가기</button>
+          <button class="btn primary" type="submit">들어가기</button></div>
+        <p class="status" id="csv-status"></p>
+      </form>`);
+    document.getElementById("back").addEventListener("click", backToSurvey);
+    document.getElementById("login-form").addEventListener("submit", async e => {
+      e.preventDefault();
+      const st = document.getElementById("csv-status");
+      let id = document.getElementById("admin-id").value.trim();
+      const pw = document.getElementById("admin-pw").value;
+      if (!id || !pw) { st.className = "status bad"; st.textContent = "아이디와 비밀번호를 모두 넣어 주세요."; return; }
+      if (!id.includes("@")) id = id + "@" + ADMIN_ID_DOMAIN;
+      try { await fauth.signInWithEmailAndPassword(id, pw); renderAdmin(); }
+      catch (err) { st.className = "status bad"; st.textContent = "아이디나 비밀번호가 맞지 않아요. 다시 확인해 주세요."; }
+    });
+    return;
+  }
+  adminShell(`<p class="empty">응답을 불러오는 중이에요.</p>`);
+  try {
+    const snap = await fdb.collection("responses").orderBy("createdAt", "desc").get();
+    RESP = snap.docs.map(d => d.data());
+  } catch (e) {
+    adminShell(`<p class="empty">이 아이디는 응답을 볼 권한이 없어요. 제작팀 아이디로 다시 들어와 주세요.</p>
+      <div class="bar"><button class="btn" id="back" type="button">설문으로 돌아가기</button>
+      <button class="btn" id="logout" type="button">로그아웃</button></div>`);
+    document.getElementById("back").addEventListener("click", backToSurvey);
+    document.getElementById("logout").addEventListener("click", async () => { await fauth.signOut(); renderAdmin(); });
+    return;
+  }
+  const cols = columns();
+  const fmtTime = t => { try { return new Date(t).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return t; } };
+  const byId = r => Object.fromEntries((r.rows || []).map(x => [x.id, x]));
+  const body = RESP.map(r => {
+    const m = byId(r);
+    return `<tr><td><b>${esc(r.nickname || "")}</b></td><td>${esc(r.code)}</td><td>${esc(fmtTime(r.createdAt))}</td><td>${esc(r.open?.habit || "")}</td><td>${esc(r.open?.taste || "")}</td>${cols.map(c => {
+      const x = m[c.id];
+      if (!x) return `<td class="${c.fu ? "fu" : ""}"></td>`;
+      const sc = x.score ?? x.value;
+      return `<td class="${c.fu ? "fu" : ""}">${esc(x.answer)}${sc != null ? `<span class="sc">${sc}</span>` : ""}</td>`;
+    }).join("")}</tr>`;
+  }).join("");
+  adminShell(`
+    <div class="bar"><span class="count">응답 ${RESP.length}개</span>
+      <button class="btn" id="back" type="button">설문으로 돌아가기</button>
+      <button class="btn" id="reload" type="button">새로고침</button>
+      <button class="btn" id="reset" type="button" ${RESP.length ? "" : "disabled"}>초기화</button>
+      <button class="btn primary" id="csv" type="button" ${RESP.length ? "" : "disabled"}>스프레드시트로 받기</button>
+      <button class="linkbtn" id="logout" type="button">로그아웃</button></div>
+    <div class="bar" id="reset-confirm" hidden style="background:var(--paper);border:1px solid var(--warn);border-radius:12px;padding:14px 16px">
+      <span class="count" style="color:var(--ink)">응답 ${RESP.length}개를 모두 지울까요? 지운 응답은 되돌릴 수 없어요. 필요하면 먼저 스프레드시트로 받아 두세요.</span>
+      <button class="btn" id="reset-cancel" type="button">취소</button>
+      <button class="btn" id="reset-go" type="button" style="background:var(--warn);border-color:var(--warn);color:#fff">모두 지우기</button>
+    </div>
+    <p class="status" id="csv-status"></p>
+    ${RESP.length ? `<div class="tablewrap"><table class="resp"><thead><tr><th>닉네임</th><th>응답 번호</th><th>제출 시각</th><th>비밀 습관</th><th>취향</th>${cols.map(c => `<th class="${c.fu ? "fu" : ""}" title="${esc(c.title)}">${c.head}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>`
+      : `<p class="empty">아직 제출된 응답이 없어요. 설문을 끝까지 답하고 제출하면 여기에 한 줄씩 쌓여요.</p>`}`);
+  document.getElementById("back").addEventListener("click", backToSurvey);
+  document.getElementById("reload").addEventListener("click", renderAdmin);
+  document.getElementById("csv").addEventListener("click", saveCSV);
+  document.getElementById("logout").addEventListener("click", async () => { await fauth.signOut(); renderAdmin(); });
+  const rc = document.getElementById("reset-confirm");
+  document.getElementById("reset").addEventListener("click", () => { rc.hidden = false; });
+  document.getElementById("reset-cancel").addEventListener("click", () => { rc.hidden = true; });
+  document.getElementById("reset-go").addEventListener("click", async () => {
+    const go = document.getElementById("reset-go");
+    go.disabled = true; go.textContent = "지우는 중";
+    try {
+      const snap = await fdb.collection("responses").get();
+      for (let i = 0; i < snap.docs.length; i += 400) {
+        const batch = fdb.batch();
+        snap.docs.slice(i, i + 400).forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+      await renderAdmin();
+      const s2 = document.getElementById("csv-status"); if (s2) { s2.className = "status"; s2.textContent = "응답을 모두 지웠어요."; }
+    } catch (e) {
+      go.disabled = false; go.textContent = "모두 지우기";
+      const st = document.getElementById("csv-status"); st.className = "status bad"; st.textContent = "응답을 지우지 못했어요. 새로고침한 뒤 다시 해 주세요.";
+    }
+  });
+}
+function saveCSV() {
+  const cols = columns();
+  const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const head = ["닉네임", "응답 번호", "제출 시각", "비밀 습관(초성)", "취향(초성)"];
+  cols.forEach(c => { head.push(`${c.head} 답`, `${c.head} 점수`); });
+  const lines = [head.map(q).join(",")];
+  const qrow = ["", "", "", "", ""];
+  cols.forEach(c => { qrow.push(c.title, ""); });
+  lines.push(qrow.map(q).join(","));
+  RESP.forEach(r => {
+    const m = Object.fromEntries((r.rows || []).map(x => [x.id, x]));
+    const row = [r.nickname || "", r.code, r.createdAt, r.open?.habit, r.open?.taste];
+    cols.forEach(c => { const x = m[c.id]; row.push(x ? x.answer : "", x ? (x.score ?? x.value ?? "") : ""); });
+    lines.push(row.map(q).join(","));
+  });
+  const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  const d = new Date();
+  a.href = URL.createObjectURL(blob);
+  a.download = `N_unit_설문_응답_${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function route() {
+  if (location.hash === "#responses") renderAdmin();
+  else { document.getElementById("rail").hidden = false; renderStage(); }
+}
+window.addEventListener("hashchange", route);
+route();
+</script>
+
+</body>
+</html>
